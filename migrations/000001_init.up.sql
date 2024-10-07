@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS artists (
 
 CREATE TABLE IF NOT EXISTS songs (
 	id serial PRIMARY KEY,
-	artist_id int references artists(id) not null,
+	artist_id int FOREIGN KEY references artists(id),
 	song varchar(100) not null,
 	release_date varchar(10) not null,
 	lirycs text not null,

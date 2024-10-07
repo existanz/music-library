@@ -1,2 +1,2 @@
-DROP TABLE artists;
 DROP TABLE songs;
+DROP TABLE artists;

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"music-library/internal/models"
 	"os"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -48,7 +49,36 @@ func New() Service {
 	dbInstance = &service{
 		db: db,
 	}
+	FillTestData(dbInstance)
 	return dbInstance
+}
+
+func (s *service) AddNewSong(song models.Song) error {
+	id, err := s.AddNewArtist(song.Group)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.db.Exec("INSERT INTO songs (artist_id, song, release_date, lirycs, link) VALUES ($1, $2, $3, $4, $5)", id, song.Song, song.ReleaseDate, song.Text, song.Link)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *service) AddNewArtist(artist string) (int, error) {
+	var id int
+	rows, err := s.db.Query("SELECT id FROM artists WHERE artist = $1 LIMIT 1", artist)
+	if err == nil && rows.Next() {
+		rows.Scan(&id)
+		return id, nil
+	}
+
+	err = s.db.QueryRow("INSERT INTO artists (artist) VALUES ($1) RETURNING id", artist).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
 }
 
 func (s *service) Close() error {
