@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log"
 	"music-library/internal/models"
+	"music-library/internal/server/query"
 	"os"
+	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -16,6 +18,8 @@ import (
 
 type Service interface {
 	Close() error
+	AddNewSong(song models.Song) error
+	GetSongs(opts query.Options) ([]models.Song, error)
 }
 
 type service struct {
@@ -79,6 +83,40 @@ func (s *service) AddNewArtist(artist string) (int, error) {
 		return 0, err
 	}
 	return id, nil
+}
+
+func (s *service) GetSongs(opts query.Options) ([]models.Song, error) {
+	var songs []models.Song
+	query := "SELECT songs.id, artist, song, release_date, lirycs, link FROM songs LEFT JOIN artists ON songs.artist_id = artists.id" + getFilersString(opts.Filters) + getPaginatorString(opts.Paginator)
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var song models.Song
+		if err := rows.Scan(&song.Id, &song.Group, &song.Song, &song.ReleaseDate, &song.Text, &song.Link); err != nil {
+			return nil, err
+		}
+		songs = append(songs, song)
+	}
+	return songs, nil
+}
+
+func getFilersString(filters []query.Filter) string {
+	if len(filters) == 0 {
+		return ""
+	}
+
+	filtersString := " WHERE "
+	for _, filter := range filters {
+		filtersString += filter.Field + " = '" + filter.Value + "' AND "
+	}
+	filtersString = strings.TrimSuffix(filtersString, "AND ")
+	return filtersString
+}
+
+func getPaginatorString(paginator query.Paginator) string {
+	return " LIMIT " + fmt.Sprint(paginator.Limit) + " OFFSET " + fmt.Sprint(paginator.Offset)
 }
 
 func (s *service) Close() error {
