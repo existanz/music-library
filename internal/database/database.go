@@ -53,7 +53,7 @@ func New() Service {
 	dbInstance = &service{
 		db: db,
 	}
-	FillTestData(dbInstance)
+	// FillTestData(dbInstance)
 	return dbInstance
 }
 

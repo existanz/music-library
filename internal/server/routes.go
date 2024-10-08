@@ -1,6 +1,7 @@
 package server
 
 import (
+	"music-library/internal/musicapi"
 	"music-library/internal/server/query"
 	"net/http"
 
@@ -13,6 +14,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.GET("/", s.BaseHandler)
 
 	r.GET("/songs", s.GetSongsHandler)
+
+	r.POST("/songs", s.AddNewSongHandler)
 
 	return r
 }
@@ -31,4 +34,28 @@ func (s *Server) GetSongsHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, data)
+}
+
+func (s *Server) AddNewSongHandler(c *gin.Context) {
+	var newSong struct {
+		Group_name string `json:"group"`
+		Song_name  string `json:"song"`
+	}
+
+	if err := c.ShouldBindJSON(&newSong); err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	song, err := musicapi.GetMusicInfo(newSong.Group_name, newSong.Song_name)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	err = s.db.AddNewSong(song)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.String(http.StatusOK, "Song added")
 }
