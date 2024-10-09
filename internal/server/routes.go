@@ -26,6 +26,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	r.PUT("/songs/:id", s.UpdateSongHandler)
 
+	r.DELETE("/songs/:id", s.DeleteSongHandler)
+
 	return r
 }
 
@@ -118,4 +120,14 @@ func (s *Server) UpdateSongHandler(c *gin.Context) {
 	}
 
 	c.String(http.StatusOK, fmt.Sprintf("Song id:%s updated", songID))
+}
+
+func (s *Server) DeleteSongHandler(c *gin.Context) {
+	songID := c.Param("id")
+	err := s.db.DeleteSongById(songID)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.String(http.StatusOK, fmt.Sprintf("Song id:%s deleted", songID))
 }

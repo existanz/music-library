@@ -22,6 +22,7 @@ type Service interface {
 	GetSongs(opts query.Options) ([]models.Song, error)
 	GetSongById(id string) (models.Song, error)
 	UpdateSongById(id string, song models.Song) error
+	DeleteSongById(id string) error
 }
 
 type service struct {
@@ -115,6 +116,14 @@ func (s *service) GetSongById(id string) (models.Song, error) {
 
 func (s *service) UpdateSongById(id string, song models.Song) error {
 	_, err := s.db.Exec("UPDATE songs SET song = $1, release_date = $2, lirycs = $3, link = $4 WHERE id = $5", song.Song, song.ReleaseDate, song.Text, song.Link, id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *service) DeleteSongById(id string) error {
+	_, err := s.db.Exec("DELETE FROM songs WHERE id = $1", id)
 	if err != nil {
 		return err
 	}
