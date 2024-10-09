@@ -20,6 +20,7 @@ type Service interface {
 	Close() error
 	AddNewSong(song models.Song) error
 	GetSongs(opts query.Options) ([]models.Song, error)
+	GetSongById(id string) (models.Song, error)
 }
 
 type service struct {
@@ -87,7 +88,7 @@ func (s *service) AddNewArtist(artist string) (int, error) {
 
 func (s *service) GetSongs(opts query.Options) ([]models.Song, error) {
 	var songs []models.Song
-	query := "SELECT songs.id, artist, song, release_date, lirycs, link FROM songs LEFT JOIN artists ON songs.artist_id = artists.id" + getFilersString(opts.Filters) + getPaginatorString(opts.Paginator)
+	query := fmt.Sprintf("SELECT songs.id, artist, song, release_date, lirycs, link FROM songs LEFT JOIN artists ON songs.artist_id = artists.id ORDER BY songs.id %s %s", getFilersString(opts.Filters), getPaginatorString(opts.Paginator))
 	rows, err := s.db.Query(query)
 	if err != nil {
 		return nil, err
@@ -100,6 +101,15 @@ func (s *service) GetSongs(opts query.Options) ([]models.Song, error) {
 		songs = append(songs, song)
 	}
 	return songs, nil
+}
+
+func (s *service) GetSongById(id string) (models.Song, error) {
+	var song models.Song
+	err := s.db.QueryRow("SELECT songs.id, artist, song, release_date, lirycs, link FROM songs LEFT JOIN artists ON songs.artist_id = artists.id WHERE songs.id = $1", id).Scan(&song.Id, &song.Group, &song.Song, &song.ReleaseDate, &song.Text, &song.Link)
+	if err != nil {
+		return song, err
+	}
+	return song, nil
 }
 
 func getFilersString(filters []query.Filter) string {
