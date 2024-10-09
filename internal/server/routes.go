@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"music-library/internal/musicapi"
 	"music-library/internal/server/query"
 	"net/http"
@@ -22,6 +23,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.GET("/songs/:id/:verse", s.GetSongTextByVerseHandler)
 
 	r.POST("/songs", s.AddNewSongHandler)
+
+	r.PUT("/songs/:id", s.UpdateSongHandler)
 
 	return r
 }
@@ -88,4 +91,31 @@ func (s *Server) AddNewSongHandler(c *gin.Context) {
 		return
 	}
 	c.String(http.StatusOK, "Song added")
+}
+
+func (s *Server) UpdateSongHandler(c *gin.Context) {
+	songID := c.Param("id")
+
+	song, err := s.db.GetSongById(songID)
+	if err != nil {
+		fmt.Println(songID, err)
+		c.String(http.StatusNotFound, err.Error())
+		return
+	}
+
+	if err := c.ShouldBindJSON(&song); err != nil {
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	if song.Id != 0 && songID != strconv.Itoa(song.Id) {
+		c.String(http.StatusBadRequest, "Wrong id")
+		return
+	}
+	err = s.db.UpdateSongById(songID, song)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.String(http.StatusOK, fmt.Sprintf("Song id:%s updated", songID))
 }
