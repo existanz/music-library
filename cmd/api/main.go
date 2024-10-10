@@ -11,6 +11,13 @@ import (
 	"time"
 )
 
+//	@title			Music library API
+//	@version		1.0
+//	@description	This is a music library API
+
+//	@host		localhost:4001
+//	@BasePath	/songs
+
 func main() {
 	server := server.NewServer()
 	go gracefulShutdown(server)
