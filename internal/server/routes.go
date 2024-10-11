@@ -2,6 +2,8 @@ package server
 
 import (
 	"fmt"
+	"log/slog"
+	"music-library/internal/customErrors"
 	"music-library/internal/models"
 	"music-library/internal/musicapi"
 	"music-library/internal/server/query"
@@ -15,6 +17,8 @@ import (
 	swaggerfiles "github.com/swaggo/files"
 	swagger "github.com/swaggo/gin-swagger"
 )
+
+const verseDelimiter = "\n\n"
 
 func (s *Server) RegisterRoutes() http.Handler {
 	r := gin.Default()
@@ -49,7 +53,12 @@ func (s *Server) RegisterRoutes() http.Handler {
 // @Router			/songs/{id} [get]
 func (s *Server) GetSongByIdHandler(c *gin.Context) {
 	data, err := s.db.GetSongById(c.Param("id"))
+	slog.Info("GetSongByIdHandler", "data", data, "err", err)
 	if err != nil {
+		if err == customErrors.ErrNotFound {
+			c.String(http.StatusNotFound, err.Error())
+			return
+		}
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -71,10 +80,16 @@ func (s *Server) GetSongByIdHandler(c *gin.Context) {
 func (s *Server) GetSongTextByVerseHandler(c *gin.Context) {
 	data, err := s.db.GetSongById(c.Param("id"))
 	if err != nil {
+		if err == customErrors.ErrNotFound {
+			c.String(http.StatusNotFound, err.Error())
+			return
+		}
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
-	text := strings.Split(data.Text, "\n\n")
+	text := strings.Split(data.Text, verseDelimiter)
+
+	slog.Info(fmt.Sprintf("Lirics of the song %s has %d verses", data.Song, len(text)))
 
 	verse, err := strconv.Atoi(c.Param("verse"))
 	if err != nil || verse > len(text) {
@@ -151,8 +166,11 @@ func (s *Server) UpdateSongHandler(c *gin.Context) {
 
 	song, err := s.db.GetSongById(songID)
 	if err != nil {
-		fmt.Println(songID, err)
-		c.String(http.StatusNotFound, err.Error())
+		if err == customErrors.ErrNotFound {
+			c.String(http.StatusNotFound, err.Error())
+			return
+		}
+		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -188,6 +206,10 @@ func (s *Server) DeleteSongHandler(c *gin.Context) {
 	songID := c.Param("id")
 	err := s.db.DeleteSongById(songID)
 	if err != nil {
+		if err == customErrors.ErrNotFound {
+			c.String(http.StatusNotFound, err.Error())
+			return
+		}
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
