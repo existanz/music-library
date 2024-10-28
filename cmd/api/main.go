@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"music-library/internal/server"
 	"net/http"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"music-library/internal/server"
 )
 
 //	@title			Music library API

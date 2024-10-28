@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"os"
+	"strings"
+
 	"music-library/internal/customErrors"
 	"music-library/internal/models"
 	"music-library/internal/server/query"
-	"os"
-	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"

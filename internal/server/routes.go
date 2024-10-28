@@ -3,13 +3,14 @@ package server
 import (
 	"fmt"
 	"log/slog"
+	"net/http"
+	"strconv"
+	"strings"
+
 	"music-library/internal/customErrors"
 	"music-library/internal/models"
 	"music-library/internal/musicapi"
 	"music-library/internal/server/query"
-	"net/http"
-	"strconv"
-	"strings"
 
 	_ "music-library/docs"
 
@@ -53,7 +54,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 // @Router			/songs/{id} [get]
 func (s *Server) GetSongByIdHandler(c *gin.Context) {
 	data, err := s.db.GetSongById(c.Param("id"))
-	slog.Info("GetSongByIdHandler", "data", data, "err", err)
+	slog.Info("GetSongByIdHandler", "group", data.Group, "song", data.Song)
 	if err != nil {
 		if err == customErrors.ErrNotFound {
 			c.String(http.StatusNotFound, err.Error())

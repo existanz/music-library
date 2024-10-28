@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"music-library/internal/models"
 	"net/http"
 	"net/url"
 	"os"
+
+	"music-library/internal/models"
 )
 
 func GetMusicInfo(group_name, song_name string) (models.Song, error) {
