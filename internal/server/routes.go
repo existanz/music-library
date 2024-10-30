@@ -3,13 +3,15 @@ package server
 import (
 	"fmt"
 	"log/slog"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
 	"music-library/internal/customErrors"
 	"music-library/internal/models"
 	"music-library/internal/musicapi"
 	"music-library/internal/server/query"
-	"net/http"
-	"strconv"
-	"strings"
 
 	_ "music-library/docs"
 
@@ -21,7 +23,9 @@ import (
 const verseDelimiter = "\n\n"
 
 func (s *Server) RegisterRoutes() http.Handler {
-	r := gin.Default()
+	r := gin.New()
+	r.Use(LoggerMiddleware())
+	r.Use(gin.Recovery())
 
 	r.GET("/docs/*any", swagger.WrapHandler(swaggerfiles.Handler))
 
@@ -53,13 +57,13 @@ func (s *Server) RegisterRoutes() http.Handler {
 // @Router			/songs/{id} [get]
 func (s *Server) GetSongByIdHandler(c *gin.Context) {
 	data, err := s.db.GetSongById(c.Param("id"))
-	slog.Info("GetSongByIdHandler", "data", data, "err", err)
 	if err != nil {
 		if err == customErrors.ErrNotFound {
 			c.String(http.StatusNotFound, err.Error())
 			return
 		}
-		c.String(http.StatusInternalServerError, err.Error())
+		slog.Debug("GetSongByIdHandler", "error", err.Error())
+		c.String(http.StatusInternalServerError, customErrors.ErrISE.Error())
 		return
 	}
 	c.JSON(http.StatusOK, data)
@@ -84,7 +88,8 @@ func (s *Server) GetSongTextByVerseHandler(c *gin.Context) {
 			c.String(http.StatusNotFound, err.Error())
 			return
 		}
-		c.String(http.StatusInternalServerError, err.Error())
+		slog.Debug("GetSongTextByVerseHandler", "error", err.Error())
+		c.String(http.StatusInternalServerError, customErrors.ErrISE.Error())
 		return
 	}
 	text := strings.Split(data.Text, verseDelimiter)
@@ -110,7 +115,8 @@ func (s *Server) GetSongTextByVerseHandler(c *gin.Context) {
 func (s *Server) GetSongsHandler(c *gin.Context) {
 	data, err := s.db.GetSongs(query.GetOptions(c))
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		slog.Debug("GetSongsHandler", "error", err.Error())
+		c.String(http.StatusInternalServerError, customErrors.ErrISE.Error())
 		return
 	}
 	c.JSON(http.StatusOK, data)
@@ -137,13 +143,15 @@ func (s *Server) AddNewSongHandler(c *gin.Context) {
 	}
 	song, err := musicapi.GetMusicInfo(newSong.Group, newSong.Song)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		slog.Debug("AddNewSongHandler", "error", err.Error())
+		c.String(http.StatusInternalServerError, customErrors.ErrISE.Error())
 		return
 	}
 
 	err = s.db.AddNewSong(song)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		slog.Debug("AddNewSongHandler", "error", err.Error())
+		c.String(http.StatusInternalServerError, customErrors.ErrISE.Error())
 		return
 	}
 	c.String(http.StatusOK, "Song added")
@@ -170,7 +178,8 @@ func (s *Server) UpdateSongHandler(c *gin.Context) {
 			c.String(http.StatusNotFound, err.Error())
 			return
 		}
-		c.String(http.StatusInternalServerError, err.Error())
+		slog.Debug("UpdateSongHandler", "error", err.Error())
+		c.String(http.StatusInternalServerError, customErrors.ErrISE.Error())
 		return
 	}
 
@@ -184,7 +193,8 @@ func (s *Server) UpdateSongHandler(c *gin.Context) {
 	}
 	err = s.db.UpdateSongById(songID, song)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		slog.Debug("UpdateSongHandler", "error", err.Error())
+		c.String(http.StatusInternalServerError, customErrors.ErrISE.Error())
 		return
 	}
 
@@ -210,8 +220,17 @@ func (s *Server) DeleteSongHandler(c *gin.Context) {
 			c.String(http.StatusNotFound, err.Error())
 			return
 		}
-		c.String(http.StatusInternalServerError, err.Error())
+		slog.Debug("DeleteSongHandler", "error", err.Error())
+		c.String(http.StatusInternalServerError, customErrors.ErrISE.Error())
 		return
 	}
 	c.String(http.StatusOK, fmt.Sprintf("Song id:%s deleted", songID))
+}
+
+func LoggerMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		c.Next()
+		slog.Info(fmt.Sprintf("--> [%s] \"%s\" [%d] %s", c.Request.Method, c.Request.URL, c.Writer.Status(), time.Since(start)))
+	}
 }

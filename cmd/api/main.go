@@ -4,11 +4,16 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"music-library/internal/server"
+	"log/slog"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"music-library/internal/server"
+
+	_ "github.com/joho/godotenv/autoload"
 )
 
 //	@title			Music library API
@@ -19,6 +24,7 @@ import (
 //	@BasePath	/songs
 
 func main() {
+	setupLogger()
 	server := server.NewServer()
 	go gracefulShutdown(server)
 
@@ -44,4 +50,16 @@ func gracefulShutdown(apiServer *http.Server) {
 	}
 
 	log.Println("Server exiting")
+}
+
+func setupLogger() {
+	logLevel := new(slog.LevelVar)
+	options := &slog.HandlerOptions{Level: logLevel}
+
+	if os.Getenv("LOG_LEVEL") == "debug" {
+		logLevel.Set(slog.LevelDebug)
+		options.AddSource = true
+	}
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, options))
+	slog.SetDefault(logger)
 }
